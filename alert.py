@@ -23,12 +23,17 @@ def get_target_price():
 
 def send_push_notification(message):
   url = f"https://ntfy.sh/{NTFY_TOPIC}"
+  # Explicitly encode message and use utf-8 headers to prevent encoding crashes
   requests.post(
       url,
       data=message.encode("utf-8"),
-      headers={"Title": "⚠️ XAU/USD Price Alert!"},
+      headers={
+          "Title": "⚠️ XAU/USD Price Alert!".encode("utf-8").decode(
+              "latin-1"
+          ),
+          "Content-Type": "text/plain; charset=utf-8",
+      },
   )
-
 
 print("Checking XAU/USD price...")
 target_price = get_target_price()
