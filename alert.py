@@ -31,34 +31,32 @@ def send_push_notification(message):
   )
 
 
-print("Checking XAU/USD price...")
+print("Checking XAU/USD spot price...")
 target_price = get_target_price()
 print(f"Current Target Price Loaded: {target_price}")
 
-# Using a reliable spot/alternative gold data feed
 try:
-  # Gold spot tracker proxy or standard GLD proxy if GC=F fluctuates differently
-  gold = yf.Ticker("GC=F")
-  # Fetching daily data with a 5m interval for better accuracy
+  # Using the exact XAU/USD spot price ticker instead of futures
+  gold = yf.Ticker("XAUUSD=X")
   todays_data = gold.history(period="2d", interval="5m")
   current_price = todays_data["Close"].iloc[-1]
 except Exception as e:
   print(f"Error fetching from yfinance: {e}")
   current_price = 0.0
 
-print(f"Live Gold Price: {current_price}")
+print(f"Live Spot Gold Price: {current_price}")
 
 # Evaluation
 if current_price > 0:
   if ALERT_DIRECTION == "above" and current_price >= target_price:
     send_push_notification(
-        f"Gold has crossed above ${target_price}! Current price:"
+        f"Gold spot crossed above ${target_price}! Current price:"
         f" ${current_price:.2f}"
     )
     print("Alert sent: Price is above target.")
   elif ALERT_DIRECTION == "below" and current_price <= target_price:
     send_push_notification(
-        f"Gold has crossed below ${target_price}! Current price:"
+        f"Gold spot crossed below ${target_price}! Current price:"
         f" ${current_price:.2f}"
     )
     print("Alert sent: Price is below target.")
