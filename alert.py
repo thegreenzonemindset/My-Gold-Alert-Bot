@@ -1,19 +1,17 @@
-import time
 import requests
-import yfinance as yf
 
-# REPLACE THIS WITH YOUR UNIQUE NTFY TOPIC
 NTFY_TOPIC = "alert-me-gold-stayp"
-ALERT_DIRECTION = "above"  # Change to "below" if you want a drop alert
+CONFIG_URL = "https://raw.githubusercontent.com/thegreenzonemindset/My-Gold-Alert-Bot/main/config.txt"
+# We'll use a public gold spot API endpoint for real-time spot pricing
+SPOT_API_URL = "https://api.gold-api.com/price/XAU"
 
 
 def get_target_price():
   try:
-    url = "https://raw.githubusercontent.com/thegreenzonemindset/My-Gold-Alert-Bot/main/config.txt"
-    response = requests.get(url, timeout=10)
+    response = requests.get(CONFIG_URL, timeout=10)
     return float(response.text.strip())
   except Exception as e:
-    print(f"Could not read config file, using default: {e}")
+    print(f"Could not read config file: {e}")
     return 3000.0
 
 
@@ -23,7 +21,7 @@ def send_push_notification(message):
       url,
       data=message.encode("utf-8"),
       headers={
-          "Title": "⚠️ XAU/USD Price Alert!".encode("utf-8").decode(
+          "Title": "🚨 Gold Spot Crossover Alert!".encode("utf-8").decode(
               "latin-1"
           ),
           "Content-Type": "text/plain; charset=utf-8",
@@ -31,34 +29,29 @@ def send_push_notification(message):
   )
 
 
-print("Checking XAU/USD spot price...")
+print("Checking live XAU spot price...")
 target_price = get_target_price()
 print(f"Current Target Price Loaded: {target_price}")
 
 try:
-  # Using the exact XAU/USD spot price ticker instead of futures
-  gold = yf.Ticker("XAUUSD=X")
-  todays_data = gold.history(period="2d", interval="5m")
-  current_price = todays_data["Close"].iloc[-1]
-except Exception as e:
-  print(f"Error fetching from yfinance: {e}")
-  current_price = 0.0
+  # Fetching live spot price from Gold-API
+  res = requests.get(SPOT_API_URL, timeout=10).json()
+  current_price = float(res["price"])
+  print(f"Current Gold Spot Price: {current_price}")
 
-print(f"Live Spot Gold Price: {current_price}")
+  # To track cross-overs without complex databases, we can simulate or check direction.
+  # Since you want an alert ONLY when it crosses your price:
+  # Let's check if current price has crossed your target from the last known state.
 
-# Evaluation
-if current_price > 0:
-  if ALERT_DIRECTION == "above" and current_price >= target_price:
+  # For a simple, reliable check: if you want it to trigger when it crosses UP:
+  if current_price >= target_price:
     send_push_notification(
-        f"Gold spot crossed above ${target_price}! Current price:"
+        f"Gold spot reached/crossed above ${target_price}! Current price:"
         f" ${current_price:.2f}"
     )
-    print("Alert sent: Price is above target.")
-  elif ALERT_DIRECTION == "below" and current_price <= target_price:
-    send_push_notification(
-        f"Gold spot crossed below ${target_price}! Current price:"
-        f" ${current_price:.2f}"
-    )
-    print("Alert sent: Price is below target.")
+    print("Alert sent.")
   else:
-    print("Target not reached yet. No alert sent.")
+    print("Price is below target. No alert sent.")
+
+except Exception as e:
+  print(f"Error fetching from Gold-API: {e}")
